@@ -19,3 +19,10 @@ for row in selected:
     tot += charcount
 
 print(tot)
+
+f = open(sys.argv[2], 'w')
+for row in selected:
+    lyrics = row[-1]
+    f.write(lyrics)
+  
+f.close()
