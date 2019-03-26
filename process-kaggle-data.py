@@ -8,6 +8,9 @@ with open(sys.argv[1], 'r') as csvfile:
     for row in reader:
         if row[4] == 'Hip-Hop':
             selected.append(row)
+	    s.add(row[3])
+
+print(sorted(list(s)))
 
 print(len(selected))
 

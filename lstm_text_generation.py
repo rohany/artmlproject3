@@ -15,7 +15,7 @@ from __future__ import print_function
 from keras.callbacks import LambdaCallback, ModelCheckpoint
 from keras.models import Sequential
 from keras.layers import Dense
-from keras.layers import LSTM, Dropout
+from keras.layers import LSTM, Dropout, Bidirectional
 from keras.optimizers import RMSprop
 from keras.utils.data_utils import get_file
 import numpy as np
@@ -40,6 +40,8 @@ text = text.replace('\t', ' ')
 text = re.sub(' +', ' ', text)
 f.close()
 
+text = text[:1500000]
+
 print('corpus length:', len(text))
 
 chars = sorted(list(set(text)))
@@ -58,36 +60,37 @@ for i in range(0, len(text) - maxlen, step):
     next_chars.append(text[i + maxlen])
 print('nb sequences:', len(sentences))
 
-# print('Vectorization...')
-# x = np.zeros((len(sentences), maxlen, len(chars)), dtype=np.bool)
-# y = np.zeros((len(sentences), len(chars)), dtype=np.bool)
-# for i, sentence in enumerate(sentences):
-#     for t, char in enumerate(sentence):
-#         x[i, t, char_indices[char]] = 1
-#     y[i, char_indices[next_chars[i]]] = 1
+print('Vectorization...')
+x = np.zeros((len(sentences), maxlen, len(chars)), dtype=np.bool)
+y = np.zeros((len(sentences), len(chars)), dtype=np.bool)
+for i, sentence in enumerate(sentences):
+    for t, char in enumerate(sentence):
+        x[i, t, char_indices[char]] = 1
+    y[i, char_indices[next_chars[i]]] = 1
 
-def generate_batches(batch_size):
-    n_batches = int(math.ceil(len(sentences) / batch_size))
-    while True:
-        for i in range(n_batches):
-	    x = np.zeros((batch_size, maxlen, len(chars)), dtype=np.bool)
-	    y = np.zeros((batch_size, len(chars)), dtype=np.bool)
-	    start = batch_size * i
-	    for j in range(batch_size):
-	    	sentence = sentences[start + j]
-		for t, char in enumerate(sentence):
-		    x[j, t, char_indices[char]] = 1
-		y[j, char_indices[next_chars[start + j]]] = 1
-	    yield x, y
+# def generate_batches(batch_size):
+#     n_batches = int(math.ceil(len(sentences) / batch_size))
+#     while True:
+#         for i in range(n_batches):
+# 	    x = np.zeros((batch_size, maxlen, len(chars)), dtype=np.bool)
+# 	    y = np.zeros((batch_size, len(chars)), dtype=np.bool)
+# 	    start = batch_size * i
+# 	    for j in range(batch_size):
+# 	    	sentence = sentences[start + j]
+# 		for t, char in enumerate(sentence):
+# 		    x[j, t, char_indices[char]] = 1
+# 		y[j, char_indices[next_chars[start + j]]] = 1
+# 	    yield x, y
 
 
 # build the model: a single LSTM
 print('Build model...')
 model = Sequential()
-model.add(LSTM(512, return_sequences=True, input_shape=(maxlen, len(chars))))
-model.add(Dropout(0.2))
-model.add(LSTM(512, return_sequences=False))
-model.add(Dropout(0.2))
+# model.add(LSTM(512, return_sequences=True, input_shape=(maxlen, len(chars))))
+model.add(LSTM(128, input_shape=(maxlen, len(chars))))
+# model.add(Dropout(0.2))
+# model.add(LSTM(512, return_sequences=False))
+# model.add(Dropout(0.2))
 model.add(Dense(len(chars), activation='softmax'))
 
 optimizer = RMSprop(lr=0.01)
@@ -142,9 +145,9 @@ checkpoint = ModelCheckpoint(file_path, monitor="loss", verbose=1, save_best_onl
 
 batch_size = 128
 
-# model.fit(x, y,
-model.fit_generator(generator=generate_batches(batch_size),
+model.fit(x, y,
+# model.fit_generator(generator=generate_batches(batch_size),
           epochs=60,
 #	  steps_per_epoch=len(sentences) // batch_size // 100,
-	  steps_per_epoch=1000000,
+#	  steps_per_epoch=100000,
           callbacks=[print_callback, checkpoint])
